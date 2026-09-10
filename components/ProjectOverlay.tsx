@@ -98,10 +98,10 @@ export default function ProjectOverlay({
 
       {/* Animated scattered images */}
       <ScatteredGallery
-        images={project.images}
-        scrollContainerRef={scrollRef}
-      />
-
+  images={project.images}
+  scrollContainerRef={scrollRef}
+  bg={project.bg}
+/>
       {/* Long description + CTA */}
       <section className="flex flex-col items-center gap-16 px-6 py-32 text-center md:px-12">
         <p className="max-w-2xl text-lg leading-relaxed md:text-xl">

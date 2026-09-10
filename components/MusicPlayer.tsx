@@ -77,7 +77,9 @@ export default function MusicPlayer() {
     const data = new Uint8Array(analyser.frequencyBinCount);
 
     function animate() {
-      analyser.getByteFrequencyData(data);
+  if (!analyser) return;
+
+  analyser.getByteFrequencyData(data);
 
       const nextBars = Array.from(
         { length: BAR_COUNT },

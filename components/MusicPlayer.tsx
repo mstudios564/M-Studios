@@ -1,180 +1,35 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const BAR_COUNT = 10;
+const IDLE_BARS: number[] = Array(BAR_COUNT).fill(2);
 
 export default function MusicPlayer() {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const userControlledRef = useRef(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [bars, setBars] = useState<number[]>(
-    Array(BAR_COUNT).fill(2)
-  );
+  const [bars, setBars] = useState<number[]>(IDLE_BARS);
   const [color, setColor] = useState("#111111");
 
-  // Set up the analyser once
-  useEffect(() => {
+  // Build the audio graph once, and only from inside a user gesture
+  const ensureGraph = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio) return null;
 
-    const setupAudio = () => {
-      if (analyserRef.current) return;
-
-      const AudioContext =
+    if (!audioContextRef.current) {
+      const Ctx =
         window.AudioContext ||
         (window as typeof window & {
           webkitAudioContext: typeof window.AudioContext;
         }).webkitAudioContext;
 
-      const context = new AudioContext();
-
-      const source = context.createMediaElementSource(audio);
-      const analyser = context.createAnalyser();
-
-      analyser.fftSize = 64;
-      analyser.smoothingTimeConstant = 0.000035;
-
-      source.connect(analyser);
-      analyser.connect(context.destination);
-
-      audioContextRef.current = context;
-      sourceRef.current = source;
-      analyserRef.current = analyser;
-    };
-
-    audio.addEventListener("play", setupAudio);
-
-    return () => {
-      audio.removeEventListener("play", setupAudio);
-
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-
-      audioContextRef.current?.close();
-    };
-  }, []);
-
-  // Animate waveform from actual audio
-  useEffect(() => {
-    if (!isPlaying) {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-
-      setBars(Array(BAR_COUNT).fill(2));
-      return;
-    }
-
-    const analyser = analyserRef.current;
-    if (!analyser) return;
-
-    const data = new Uint8Array(analyser.frequencyBinCount);
-
-    function animate() {
-  if (!analyser) return;
-
-  analyser.getByteFrequencyData(data);
-
-      const nextBars = Array.from(
-        { length: BAR_COUNT },
-        (_, i) => {
-          const index = Math.floor(
-            (i / BAR_COUNT) * data.length
-          );
-
-          const value = data[index] / 255;
-
-          // Minimum height + actual audio movement
-          return 2 + value * 30;
-        }
-      );
-
-      setBars(nextBars);
-
-      animationRef.current = requestAnimationFrame(animate);
-    }
-
-    animate();
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [isPlaying]);
-
-  // Change waveform colour depending on what's underneath it
-  useEffect(() => {
-    function updateColor() {
-      const x = window.innerWidth - 50;
-      const y = window.innerHeight - 45;
-
-      const elements = document.elementsFromPoint(x, y);
-
-      for (const element of elements) {
-        if (
-          element instanceof HTMLElement &&
-          element.dataset.soundPlayer !== "true"
-        ) {
-          const background =
-            getComputedStyle(element).backgroundColor;
-
-          if (
-            background &&
-            background !== "rgba(0, 0, 0, 0)" &&
-            background !== "transparent"
-          ) {
-            const rgb = background.match(/\d+/g);
-
-            if (rgb && rgb.length >= 3) {
-              const brightness =
-                Number(rgb[0]) * 0.299 +
-                Number(rgb[1]) * 0.587 +
-                Number(rgb[2]) * 0.114;
-
-              setColor(
-                brightness > 150 ? "#111111" : "#f8f7f3"
-              );
-
-              return;
-            }
-          }
-        }
-      }
-
-      setColor("#111111");
-    }
-
-    window.addEventListener("scroll", updateColor);
-    window.addEventListener("resize", updateColor);
-
-    updateColor();
-
-    return () => {
-      window.removeEventListener("scroll", updateColor);
-      window.removeEventListener("resize", updateColor);
-    };
-  }, []);
-
-  function toggleSound() {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (!analyserRef.current) {
-      const AudioContext =
-        window.AudioContext ||
-        (window as typeof window & {
-          webkitAudioContext: typeof window.AudioContext;
-        }).webkitAudioContext;
-
-      const context = new AudioContext();
-
+      const context = new Ctx();
       const source = context.createMediaElementSource(audio);
       const analyser = context.createAnalyser();
 
@@ -185,65 +40,191 @@ export default function MusicPlayer() {
       analyser.connect(context.destination);
 
       audioContextRef.current = context;
-      sourceRef.current = source;
       analyserRef.current = analyser;
     }
+
+    return audioContextRef.current;
+  }, []);
+
+  const startSound = useCallback(async () => {
+    const audio = audioRef.current;
+    const context = ensureGraph(); // runs synchronously, inside the gesture
+    if (!audio || !context) return false;
+
+    try {
+      await context.resume();
+      await audio.play();
+      setIsPlaying(true);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [ensureGraph]);
+
+  // Start automatically on the visitor's first tap/click/key anywhere
+  useEffect(() => {
+    const events = ["pointerup", "touchend", "click", "keydown"] as const;
+    let busy = false;
+
+    const remove = () =>
+      events.forEach((e) =>
+        window.removeEventListener(e, onFirstGesture, { capture: true })
+      );
+
+    async function onFirstGesture(e: Event) {
+      if (userControlledRef.current) {
+        remove();
+        return;
+      }
+      // Let the player button handle its own taps
+      const target = e.target as HTMLElement | null;
+      if (target?.closest?.('[data-sound-player="true"]')) return;
+      if (busy) return;
+
+      busy = true;
+      const ok = await startSound();
+      busy = false;
+      if (ok) remove();
+    }
+
+    events.forEach((e) =>
+      window.addEventListener(e, onFirstGesture, {
+        capture: true,
+        passive: true,
+      })
+    );
+
+    // Kept so your existing gate still works until you delete it
+    const onGate = () => {
+      startSound();
+    };
+    window.addEventListener("enable-sound", onGate);
+
+    return () => {
+      remove();
+      window.removeEventListener("enable-sound", onGate);
+    };
+  }, [startSound]);
+
+  // Animate waveform from the real audio
+  useEffect(() => {
+    if (!isPlaying) {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      setBars(IDLE_BARS);
+      return;
+    }
+
+    const analyser = analyserRef.current;
+    if (!analyser) return;
+
+    const data = new Uint8Array(analyser.frequencyBinCount);
+
+    function animate() {
+      analyser!.getByteFrequencyData(data);
+
+      setBars(
+        Array.from({ length: BAR_COUNT }, (_, i) => {
+          const index = Math.floor((i / BAR_COUNT) * data.length);
+          return 2 + (data[index] / 255) * 30;
+        })
+      );
+
+      animationRef.current = requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [isPlaying]);
+
+  // Pick bar colour based on what's underneath the player
+  useEffect(() => {
+    function updateColor() {
+      const rect = wrapperRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const elements = document.elementsFromPoint(
+        rect.left + rect.width / 2,
+        rect.top + rect.height / 2
+      );
+
+      for (const element of elements) {
+        if (
+          !(element instanceof HTMLElement) ||
+          element.closest('[data-sound-player="true"]')
+        )
+          continue;
+
+        const background = getComputedStyle(element).backgroundColor;
+
+        if (
+          background &&
+          background !== "rgba(0, 0, 0, 0)" &&
+          background !== "transparent"
+        ) {
+          const rgb = background.match(/\d+/g);
+          if (rgb && rgb.length >= 3) {
+            const brightness =
+              Number(rgb[0]) * 0.299 +
+              Number(rgb[1]) * 0.587 +
+              Number(rgb[2]) * 0.114;
+            setColor(brightness > 150 ? "#111111" : "#f8f7f3");
+            return;
+          }
+        }
+      }
+
+      setColor("#111111");
+    }
+
+    window.addEventListener("scroll", updateColor, { passive: true });
+    window.addEventListener("resize", updateColor);
+    updateColor();
+
+    return () => {
+      window.removeEventListener("scroll", updateColor);
+      window.removeEventListener("resize", updateColor);
+    };
+  }, []);
+
+  async function toggleSound() {
+    userControlledRef.current = true;
+    const audio = audioRef.current;
+    if (!audio) return;
 
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
     } else {
-      audioContextRef.current?.resume();
-
-      audio
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch(() => {});
+      await startSound();
     }
   }
 
-  function enableFromGate() {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    audio
-      .play()
-      .then(() => setIsPlaying(true))
-      .catch(() => {});
-  }
-
-  useEffect(() => {
-    window.addEventListener("enable-sound", enableFromGate);
-
-    return () =>
-      window.removeEventListener("enable-sound", enableFromGate);
-  }, []);
-
   return (
     <div
+      ref={wrapperRef}
       data-sound-player="true"
-      className="fixed bottom-6 right-6 z-50"
+      className="fixed z-50"
+      style={{
+        right: "max(1.5rem, env(safe-area-inset-right))",
+        bottom: "max(1.5rem, env(safe-area-inset-bottom))",
+      }}
     >
-      <audio
-        ref={audioRef}
-        src="/audio/Expansion.mp3"
-        loop
-      />
+      <audio ref={audioRef} src="/audio/Expansion.mp3" loop preload="auto" />
 
       <button
         onClick={toggleSound}
         aria-label={isPlaying ? "Mute sound" : "Play sound"}
-        className="flex h-10 w-16 items-center justify-center"
+        className="flex h-11 w-16 touch-manipulation items-center justify-center"
       >
         <div className="flex h-8 items-center gap-[2px]">
           {bars.map((height, index) => (
             <span
               key={index}
               className="w-[2px] rounded-full transition-[height] duration-75"
-              style={{
-                height: `${height}px`,
-                backgroundColor: color,
-              }}
+              style={{ height: `${height}px`, backgroundColor: color }}
             />
           ))}
         </div>

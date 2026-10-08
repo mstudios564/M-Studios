@@ -40,8 +40,8 @@ export default function WorkRow({
             {project.year}
           </span>
 
-          <span className="text-paper transition-transform duration-500 group-hover:rotate-45">
-            ↗
+          <span className="arrow text-paper transition-transform duration-500 group-hover:rotate-45">
+            {"\u2197\uFE0E"}
           </span>
         </button>
 
@@ -57,10 +57,8 @@ export default function WorkRow({
         >
           <div className="overflow-hidden">
             <div className="px-6 pb-10 pt-0 md:px-10 md:pb-12">
-              
               {/* Extra project information */}
               <div className="grid grid-cols-1 gap-8 md:grid-cols-12 md:gap-8">
-
                 {/* Tags */}
                 <div className="md:col-span-4">
                   <div className="text-sm font-medium uppercase leading-[1.45] text-paper">
@@ -88,7 +86,7 @@ export default function WorkRow({
                     }}
                     className="cursor-pointer border-b border-paper pb-2 text-sm font-medium uppercase text-paper transition-opacity hover:opacity-60"
                   >
-                    View Case Study →
+                    View Case Study <span className="arrow">{"\u2192\uFE0E"}</span>
                   </span>
                 </div>
               </div>

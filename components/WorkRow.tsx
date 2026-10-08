@@ -11,13 +11,13 @@ export default function WorkRow({
 }) {
   return (
     <article className="group relative overflow-hidden border-b border-line bg-ink">
-      {/* Project color — only visible on hover */}
+      {/* Project color: always on for mobile, hover only on desktop */}
       <span
         className="
           pointer-events-none absolute inset-0
-          opacity-0
+          opacity-100 md:opacity-0
           transition-opacity duration-500 ease-out
-          group-hover:opacity-100
+          md:group-hover:opacity-100
         "
         style={{ backgroundColor: project.bg }}
       />
@@ -40,23 +40,28 @@ export default function WorkRow({
             {project.year}
           </span>
 
-          <span className="arrow text-paper transition-transform duration-500 group-hover:rotate-45">
+          <span className="arrow ml-auto text-paper transition-transform duration-500 md:ml-0 md:group-hover:rotate-45">
             {"\u2197\uFE0E"}
           </span>
         </button>
 
-        {/* Expanded hover content */}
+        {/* Expanded content: open by default on mobile, expands on hover on desktop */}
         <div
           className="
-            grid grid-rows-[0fr]
+            grid grid-rows-[1fr] md:grid-rows-[0fr]
             transition-[grid-template-rows]
             duration-700
             ease-[cubic-bezier(.16,1,.3,1)]
-            group-hover:grid-rows-[1fr]
+            md:group-hover:grid-rows-[1fr]
           "
         >
           <div className="overflow-hidden">
             <div className="px-6 pb-10 pt-0 md:px-10 md:pb-12">
+              {/* Description (mobile only, since the main row hides it) */}
+              <p className="mb-8 text-sm leading-relaxed text-paper/80 md:hidden">
+                {project.description}
+              </p>
+
               {/* Extra project information */}
               <div className="grid grid-cols-1 gap-8 md:grid-cols-12 md:gap-8">
                 {/* Tags */}
@@ -110,7 +115,7 @@ export default function WorkRow({
                         h-full min-h-[260px] w-full object-cover
                         transition-transform duration-1000
                         ease-[cubic-bezier(.16,1,.3,1)]
-                        group-hover:scale-[1.04]
+                        md:group-hover:scale-[1.04]
                       "
                     />
                   </div>

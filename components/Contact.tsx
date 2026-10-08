@@ -32,7 +32,7 @@ export default function Contact() {
             rel="noopener noreferrer"
             className="w-fit text-sm text-[#555555] transition-colors duration-300 hover:text-[#111111] md:text-base"
           >
-            WhatsApp ↗
+            WhatsApp <span className="arrow">{"\u2197\uFE0E"}</span>
           </a>
         </div>
 
@@ -45,7 +45,7 @@ export default function Contact() {
               rel="noopener noreferrer"
               className="transition-colors duration-300 hover:text-[#111111]"
             >
-              Instagram ↗
+              Instagram <span className="arrow">{"\u2197\uFE0E"}</span>
             </a>
 
             <a
@@ -54,7 +54,7 @@ export default function Contact() {
               rel="noopener noreferrer"
               className="transition-colors duration-300 hover:text-[#111111]"
             >
-              TikTok ↗
+              TikTok <span className="arrow">{"\u2197\uFE0E"}</span>
             </a>
           </div>
 
@@ -65,8 +65,8 @@ export default function Contact() {
             className="group inline-flex w-fit items-center gap-5 rounded-full border border-[#111111] px-6 py-3 text-sm transition-colors duration-300 hover:bg-[#111111] hover:text-white"
           >
             Start a project
-            <span className="text-lg transition-transform duration-300 group-hover:translate-x-1">
-              ↗
+            <span className="arrow inline-block text-lg transition-transform duration-300 group-hover:translate-x-1">
+              {"\u2197\uFE0E"}
             </span>
           </a>
         </div>

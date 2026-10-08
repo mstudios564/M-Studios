@@ -43,7 +43,7 @@ export default function ProjectOverlay({
           hover:text-ink
         "
       >
-        ✕
+                <span className="arrow">{"\u2715\uFE0E"}</span>
       </button>
 
       {/* Header */}
@@ -115,7 +115,7 @@ export default function ProjectOverlay({
             rel="noopener noreferrer"
             className="text-sm text-paper/60 underline underline-offset-4 transition-colors duration-300 hover:text-paper"
           >
-            View live website ↗
+                        View live website <span className="arrow">{"\u2197\uFE0E"}</span>
           </a>
 
           <a

@@ -1,8 +1,7 @@
 import RevealText from "./RevealText";
 export default function Hero() {
   return (
-    <section className="relative flex min-h-[75vh] flex-col justify-end px-6 pb-10 pt-20 md:px-10 md:pb-12 md:pt-24">
-      <div className="max-w-5xl">
+<section className="relative flex min-h-[75svh] flex-col justify-end px-6 pb-10 pt-20 md:px-10 md:pb-12 md:pt-24">      <div className="max-w-5xl">
         <p className="reveal-line mb-6 text-sm text-muted md:text-base">
           <span style={{ animationDelay: "0.1s" }}>
             Web developer & builder, based in Cairo
@@ -45,7 +44,7 @@ export default function Hero() {
           className="group inline-flex items-center gap-1 text-sm font-medium"
         >
           <span className="flex h-12 w-12 items-center justify-center rounded-full border border-line transition-colors duration-300 group-hover:bg-paper group-hover:text-ink">
-            ↓
+                        <span className="arrow">{"\u2193\uFE0E"}</span>
           </span>
           See the work
         </a>

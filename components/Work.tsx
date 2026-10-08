@@ -45,7 +45,7 @@ export default function Work() {
           className="mx-auto mt-8 flex w-full max-w-md items-center justify-center gap-4 rounded-full border border-line px-8 py-3 text-sm font-medium uppercase text-paper transition-colors duration-300 hover:bg-paper hover:text-ink"
         >
           View All
-          <span className="text-lg">↗</span>
+<span className="arrow text-lg">{"\u2197\uFE0E"}</span>
         </a>
       </div>
 
